@@ -25,6 +25,18 @@ public class SearchURL {
 	}
 
 	@Override
+	public boolean equals(Object obj) {
+		if (obj instanceof SearchURL) {
+			SearchURL url = (SearchURL) obj;
+			if (url.getParsedString().equals(parsedString) && url.getSearchString().equals(searchString)
+					&& url.getParsedString().equals(parsedString)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public String toString() {
 		return "SearchURL [searchString=" + searchString + ", parsedString=" + parsedString + ", url=" + url + "]";
 	}
