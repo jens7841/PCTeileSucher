@@ -16,7 +16,7 @@ public class Geizhals extends SearchPage {
 	@Override
 	public double getPrice(Document articlePage) {
 
-		Element priceElement = articlePage.getElementById("content_table").getElementsByClass("price").first()
+		Element priceElement = articlePage.getElementById("offer__price-0").getElementsByClass("gh_price").first()
 				.getElementsByClass("gh_price").first();
 
 		String priceString = priceElement.text();
@@ -39,8 +39,8 @@ public class Geizhals extends SearchPage {
 	@Override
 	public String getShopURL(Document doc) {
 
-		return GEIZHALS_PAGE_PREFIX
-				+ doc.getElementById("content_table").getElementsByClass("offer_bt").first().attr("href");
+		return GEIZHALS_PAGE_PREFIX + doc.getElementById("offer__price-0").getElementsByClass("offer__clickout").first()
+				.select("a[href]").attr("href");
 
 	}
 
