@@ -49,7 +49,7 @@ public class CSVCreator {
 			}
 
 			for (String searchString : linesToList) {
-				performSerach(new Search(page, searchString.replaceAll("\\/", " ")));
+				performSearch(new Search(page, searchString.replaceAll("\\/", " ")));
 			}
 
 		} catch (IOException e) {
@@ -83,7 +83,7 @@ public class CSVCreator {
 					@Override
 					public void run() {
 						try {
-							performSerach(new Search(page, searchString.replaceAll("\\/", " ")));
+							performSearch(new Search(page, searchString.replaceAll("\\/", " ")));
 						} finally {
 							latch.countDown();
 						}
@@ -108,7 +108,7 @@ public class CSVCreator {
 		}
 	}
 
-	private void performSerach(Search search) {
+	private void performSearch(Search search) {
 		try {
 			FileWriter stats = new FileWriter(statsFolder.getAbsolutePath() + "/" + search.getSearchString() + ".csv",
 					true);

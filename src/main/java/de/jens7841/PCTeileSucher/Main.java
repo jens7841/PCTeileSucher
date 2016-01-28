@@ -143,7 +143,6 @@ public class Main {
 					file.mkdirs();
 
 			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		} while (file == null || !file.exists());
 		return file;
