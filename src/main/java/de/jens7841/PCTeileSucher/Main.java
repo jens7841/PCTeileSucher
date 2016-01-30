@@ -5,7 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
-import de.jens7841.PCTeileSucher.FileManagement.CSVCreator;
+import de.jens7841.PCTeileSucher.search.SearchFromFileToCSV;
+import de.jens7841.PCTeileSucher.search.SearchPage;
 import de.jens7841.PCTeileSucher.search.pages.Geizhals;
 
 public class Main {
@@ -20,14 +21,16 @@ public class Main {
 		String command = "";
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-		File read = getFile("Datei mit Suchanfragen", false, false);
-		File write = getFile("Datei in der die aktuellen Ergebnisse gespeichert werden sollen", true, false);
-		File statsFolder = getFile("Ordner, in der die Statistiken gespeichert werden sollen", true, true);
+		File read = getFile("Datei mit Suchanfragen", false, false, true);
+		File write = getFile("Datei mit der Aktuellen Übersicht", true, false, false);
+		File statsFolder = getFile("Ordner für Statistiken", true, true, false);
+
+		SearchPage page = new Geizhals();
 
 		// File read = new File("teile.txt");
 		// File write = new File("out.csv");
 		// File statsFolder = new File("stats");
-
+		SearchFromFileToCSV search = new SearchFromFileToCSV(read, write, statsFolder, page);
 		while (!command.equalsIgnoreCase("end")) {
 			command = reader.readLine();
 
@@ -35,10 +38,10 @@ public class Main {
 				new Thread() {
 					@Override
 					public void run() {
-						long start = System.currentTimeMillis();
-						CSVCreator creator = new CSVCreator(new Geizhals(), read, write, statsFolder);
-						creator.startOutput();
-						System.out.println("Finished run in " + (System.currentTimeMillis() - start) / 1000.0);
+
+						search.performFullSearch();
+
+						System.out.println("Finished run in " + (search.getLastSearchDuration()) / 1000.0);
 					};
 				}.start();
 			}
@@ -46,10 +49,8 @@ public class Main {
 				new Thread() {
 					@Override
 					public void run() {
-						long start = System.currentTimeMillis();
-						CSVCreator creator = new CSVCreator(new Geizhals(), read, write, statsFolder);
-						creator.startThreadedOutput();
-						System.out.println("Finished threaded run in " + (System.currentTimeMillis() - start) / 1000.0);
+						search.performFullThreadedSearch();
+						System.out.println("Finished threaded run in " + (search.getLastSearchDuration()) / 1000.0);
 					};
 				}.start();
 			}
@@ -74,11 +75,8 @@ public class Main {
 					@Override
 					public void run() {
 						while (timedRunRunning) {
-							CSVCreator creator = new CSVCreator(new Geizhals(), read, write, statsFolder);
-							long start = System.currentTimeMillis();
-							creator.startThreadedOutput();
-							System.out.println(
-									"Finished threaded run in " + (System.currentTimeMillis() - start) / 1000.0);
+							search.performFullThreadedSearch();
+							System.out.println("Finished threaded run in " + (search.getLastSearchDuration()) / 1000.0);
 							System.err.println("Waiting " + timeInSecounds + " sec ("
 									+ Math.round((timeInSecounds / 60.0) * 100.) / 100. + "min "
 									+ Math.round((timeInSecounds / 60.0 / 60.0) * 100.) / 100. + "h)");
@@ -126,26 +124,43 @@ public class Main {
 		file.delete();
 	}
 
-	private static File getFile(String out, boolean create, boolean isDirectory) {
+	private static File getFile(String out, boolean create, boolean isDirectory, boolean mustExist) {
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		File file = null;
 
+		boolean successful = true;
 		do {
+			successful = true;
 			System.out.print(out + ": ");
 
 			try {
 				file = new File(in.readLine());
-				if (create && !isDirectory)
-					file.createNewFile();
 
-				if (create && isDirectory)
+				if (create) {
 					file.mkdirs();
+					if (!isDirectory) {
+						file.delete();
+						file.createNewFile();
+					}
+				}
+
+				if (mustExist) {
+					if (isDirectory && !file.isDirectory()) {
+						successful = false;
+					}
+					if (!isDirectory && file.isDirectory()) {
+						successful = false;
+					}
+					if (!file.exists()) {
+						successful = false;
+					}
+				}
 
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-		} while (file == null || !file.exists());
+		} while (!successful);
 		return file;
 	}
 }
