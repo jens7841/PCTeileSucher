@@ -36,6 +36,11 @@ public class CSVGenerator {
 		return this;
 	}
 
+	public CSVGenerator add(long l) {
+		add("" + l);
+		return this;
+	}
+
 	private StringBuilder getBuilder() {
 
 		Thread currentThread = Thread.currentThread();
