@@ -158,7 +158,6 @@ public class Main {
 				}
 
 			} catch (IOException e) {
-				e.printStackTrace();
 			}
 		} while (!successful);
 		return file;
