@@ -11,8 +11,8 @@ public class Search {
 	private Document searchPage;
 	private boolean isLoaded;
 	private Document articlePage;
-	private double price;
-	private String shopURL;
+
+	private Article article;
 
 	public Search(SearchPage page, String searchString) {
 		this.page = page;
@@ -20,32 +20,30 @@ public class Search {
 		isLoaded = false;
 	}
 
-	public double getPrice() {
-		initializePage();
-		return price;
+	public void updateData() {
+		searchPage = page.getSearchPage(searchString);
+		try {
+			articlePage = SearchPage.connect(page.getLinkFromSearch(searchPage));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		double price = page.getPrice(articlePage);
+		String shopURL = page.getArticleURL(articlePage);
+		isLoaded = true;
+
+		this.article = new Article(searchString, price, shopURL);
+
 	}
 
-	public String getShopURL() {
+	public Article getArticle() {
 		initializePage();
-		return shopURL;
+		return article;
 	}
 
 	private void initializePage() {
 		if (!isLoaded) {
-			searchPage = page.getSearchPage(searchString);
-			try {
-				articlePage = page.connect(page.getLinkFromSearch(searchPage));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			price = page.getPrice(articlePage);
-			shopURL = page.getShopURL(articlePage);
-			isLoaded = true;
+			updateData();
 		}
-	}
-
-	public String getSearchString() {
-		return searchString;
 	}
 
 }
