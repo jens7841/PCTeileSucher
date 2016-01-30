@@ -37,7 +37,7 @@ public class Geizhals extends SearchPage {
 	}
 
 	@Override
-	public String getShopURL(Document doc) {
+	public String getArticleURL(Document doc) {
 
 		return GEIZHALS_PAGE_PREFIX + doc.getElementById("offer__price-0").getElementsByClass("offer__clickout").first()
 				.select("a[href]").attr("href");
