@@ -16,6 +16,7 @@ public class Main {
 	private static long timeInMillis;
 
 	public static void main(String[] args) throws Throwable {
+
 		timedRunRunning = false;
 
 		String command = "";
