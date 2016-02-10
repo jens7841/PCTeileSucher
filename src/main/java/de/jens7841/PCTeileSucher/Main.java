@@ -5,6 +5,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 
+import javax.swing.JFrame;
+
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+
+import de.jens7841.PCTeileSucher.export.ChartGenerator;
+import de.jens7841.PCTeileSucher.export.ChartToImage;
+import de.jens7841.PCTeileSucher.export.HTMLGenerator;
 import de.jens7841.PCTeileSucher.search.SearchFromFileToCSV;
 import de.jens7841.PCTeileSucher.search.SearchPage;
 import de.jens7841.PCTeileSucher.search.pages.Geizhals;
@@ -22,9 +30,12 @@ public class Main {
 		String command = "";
 		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
 
-		File read = getFile("Datei mit Suchanfragen", false, false, true);
-		File write = getFile("Datei mit der Aktuellen Übersicht", true, false, false);
-		File statsFolder = getFile("Ordner für Statistiken", true, true, false);
+		File read = getFile("Datei mit Suchanfragen", false, false, true, "teile.txt");
+		File write = getFile("Datei mit der Aktuellen Übersicht", true, false, false, "tabelle.csv");
+		File statsFolder = getFile("Ordner für Statistiken", true, true, false, "stats");
+		File htmlFolder = getFile("Ordner für die HTML-Seite", true, true, false, "html");
+		deleteFile(htmlFolder);
+		htmlFolder.mkdirs();
 
 		SearchPage page = new Geizhals();
 
@@ -77,6 +88,9 @@ public class Main {
 					public void run() {
 						while (timedRunRunning) {
 							search.performFullThreadedSearch();
+
+							generateHtml(statsFolder, htmlFolder);
+
 							System.out.println("Finished threaded run in " + (search.getLastSearchDuration()) / 1000.0);
 							System.err.println("Waiting " + timeInSecounds + " sec ("
 									+ Math.round((timeInSecounds / 60.0) * 100.) / 100. + "min "
@@ -100,6 +114,24 @@ public class Main {
 				}
 
 				deleteFile(f);
+				System.out.println("Delete successful!");
+			}
+
+			if (command.equalsIgnoreCase("html") || command.equalsIgnoreCase("createhtml")) {
+				generateHtml(statsFolder, htmlFolder);
+			}
+
+			if (command.equalsIgnoreCase("diagram") || command.equalsIgnoreCase("diagramm")
+					|| command.equalsIgnoreCase("chart") || command.equalsIgnoreCase("getchart")
+					|| command.equalsIgnoreCase("createchart")) {
+
+				ChartPanel lineChart = new ChartGenerator(statsFolder).getLineChart();
+				JFrame frame = new JFrame("Preisentwicklung");
+
+				frame.setContentPane(lineChart);
+				frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+				frame.setSize(800, 500);
+				frame.setVisible(true);
 
 			}
 
@@ -107,10 +139,40 @@ public class Main {
 					|| command.equalsIgnoreCase("stop")) {
 				timedRunRunning = false;
 				command = "end";
+				System.out.println("Stopping now!");
+				Thread.sleep(1500);
+				System.exit(0);
 			}
 
 		}
 
+	}
+
+	private static void generateHtml(File statsFolder, File htmlFolder) {
+		File[] files = statsFolder.listFiles();
+		for (File file : files) {
+			JFreeChart chart = new ChartGenerator(file).getLineChart().getChart();
+
+			new ChartToImage(chart, htmlFolder, file.getName().substring(0, file.getName().lastIndexOf('.')))
+					.saveImage();
+		}
+
+		new HTMLGenerator(htmlFolder, ".png", htmlFolder).generateHTMlPage("index");
+		System.out.println("Html page is ready!");
+	}
+
+	private static String getInput() {
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		String line = "";
+		while (line.isEmpty()) {
+			try {
+				line = in.readLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+				line = "fail";
+			}
+		}
+		return line;
 	}
 
 	public static void deleteFile(File file) {
@@ -125,7 +187,8 @@ public class Main {
 		file.delete();
 	}
 
-	private static File getFile(String out, boolean create, boolean isDirectory, boolean mustExist) {
+	private static File getFile(String out, boolean create, boolean isDirectory, boolean mustExist,
+			String defaultValue) {
 
 		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
 		File file = null;
@@ -136,7 +199,12 @@ public class Main {
 			System.out.print(out + ": ");
 
 			try {
-				file = new File(in.readLine());
+				String line = in.readLine();
+				if (line.isEmpty() && !defaultValue.isEmpty()) {
+					file = new File(defaultValue);
+				} else {
+					file = new File(line);
+				}
 
 				if (create) {
 					file.mkdirs();

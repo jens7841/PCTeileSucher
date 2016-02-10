@@ -3,70 +3,108 @@ package de.jens7841.PCTeileSucher.export;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.text.NumberFormat;
 import java.util.Date;
 import java.util.List;
-
-import javax.swing.JFrame;
+import java.util.Locale;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.data.time.Minute;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.time.Second;
 import org.jfree.data.time.TimeSeries;
 import org.jfree.data.time.TimeSeriesCollection;
+import org.jfree.data.xy.XYDataset;
 
 public class ChartGenerator {
 
 	private File file;
 
+	/**
+	 * @param csv
+	 *            csv kann ein Verzeichnis oder eine Datei sein. Bei einem
+	 *            Verzeichnis werden alle Dateien darin gelesen und in ein
+	 *            Diagramm gepackt. Bei einer Datei gibt es nur ein Diagramm mit
+	 *            einer Datei.
+	 */
 	public ChartGenerator(File csv) {
 
-		if (!csv.exists() || csv.isDirectory()) {
+		if (!csv.exists()) {
 			throw new IllegalStateException("csv must be a file!");
 		}
 
 		this.file = csv;
 	}
 
-	public static void main(String[] args) {
-		JFrame jFrame = new JFrame();
-		File csv = new File("src/main/resources/teilDemo.csv");
-		ChartPanel panel = new ChartPanel(new ChartGenerator(csv).getLineChart());
+	private ChartPanel createChart() {
 
-		jFrame.setContentPane(panel);
-		jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		jFrame.setSize(800, 500);
-		jFrame.setVisible(true);
+		XYDataset roiData = createDataset();
+		JFreeChart chart = null;
+		if (file.isDirectory()) {
+			chart = ChartFactory.createTimeSeriesChart("Preisentwicklung", "Zeit", "Preis", roiData, true, true, false);
+		} else {
+			chart = ChartFactory.createTimeSeriesChart(file.getName() + " - Preisentwicklung", "Zeit", "Preis", roiData,
+					true, true, false);
+
+		}
+		XYPlot plot = chart.getXYPlot();
+		XYLineAndShapeRenderer renderer = (XYLineAndShapeRenderer) plot.getRenderer();
+		renderer.setBaseShapesVisible(true);
+		NumberFormat currency = NumberFormat.getCurrencyInstance(Locale.GERMANY);
+		currency.setMaximumFractionDigits(0);
+		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
+		rangeAxis.setNumberFormatOverride(currency);
+		return new ChartPanel(chart);
+
 	}
 
-	public JFreeChart getLineChart() {
+	private XYDataset createDataset() {
 		TimeSeriesCollection dataset = new TimeSeriesCollection();
-
-		JFreeChart lineChart = ChartFactory.createTimeSeriesChart("Preisentwicklung", "Zeit", "Preis in €", dataset,
-				true, true, false);
 		try {
-			List<String> lines = Files.readAllLines(file.toPath());
-			TimeSeries series = new TimeSeries(file.getName());
-			for (String line : lines) {
-				String[] split = line.split("\\;");
-				double price = Double.parseDouble(split[0].replace(",", "."));
-				// FIXME
-				// http://stackoverflow.com/questions/5522575/how-can-i-update-a-jfreecharts-appearance-after-its-been-made-visible/5522583#5522583
-				// ChartPanelDemo
+			if (file.isDirectory()) {
+				File[] files = file.listFiles();
+				for (File file : files) {
 
-				// dataset.addValue(price, file.getName(), split[1]);
+					List<String> lines = Files.readAllLines(file.toPath());
+					TimeSeries series = new TimeSeries(file.getName());
+					for (String line : lines) {
+						String[] split = line.split("\\;");
+						double price = Double.parseDouble(split[0].replace(",", "."));
 
-				Date time = new Date();
-				time.setTime(Long.parseLong(split[1]));
-				series.add(new Minute(time), price + " €");
+						Date time = new Date();
+						time.setTime(Long.parseLong(split[1]));
+						series.add(new Second(time), price);
 
+					}
+					dataset.addSeries(series);
+				}
+			} else {
+				List<String> lines = Files.readAllLines(file.toPath());
+				TimeSeries series = new TimeSeries(file.getName());
+				for (String line : lines) {
+					String[] split = line.split("\\;");
+					double price = Double.parseDouble(split[0].replace(",", "."));
+
+					Date time = new Date();
+					time.setTime(Long.parseLong(split[1]));
+					series.add(new Second(time), price);
+
+				}
+				dataset.addSeries(series);
 			}
-			dataset.addSeries(series);
-
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		return lineChart;
+
+		return dataset;
+	}
+
+	public ChartPanel getLineChart() {
+		ChartPanel chartPanel = createChart();
+		return chartPanel;
 	}
 
 }
